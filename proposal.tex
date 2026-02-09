@@ -1,0 +1,126 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\begin{document}
+
+% ---------------- Title Block ----------------
+\begin{center}
+\rule{\textwidth}{1pt}
+
+\vspace{0.3cm}
+
+{\LARGE \textbf{Project Proposal -- ECE 176}}  
+
+\vspace{0.3cm}
+
+\rule{\textwidth}{0.8pt}
+
+\vspace{0.8cm}
+
+\textbf{Evaluating the Robustness of Vision-Language Models to Background and Context Changes}
+
+\vspace{0.5cm}
+
+\textbf{Shengrui (Leon) Chen} \\
+University of California, San Diego \\
+February 2026
+
+\end{center}
+
+\vspace{0.8cm}
+
+% ---------------- Abstract ----------------
+\section*{Abstract}
+
+Vision-Language Models (VLMs) perform well on many multimodal tasks, but it is still unclear how stable these models are when visual context changes. This project studies whether VLM predictions rely on recognizing the target object itself or on surrounding background information. We apply controlled background modifications and test model performance across several datasets. By comparing results before and after perturbation, this work examines common failure patterns and highlights robustness issues that appear under distribution shift.
+
+\vspace{0.5cm}
+
+% ---------------- Main Sections ----------------
+\section{Introduction}
+
+Vision-language models (VLMs) have shown strong results on tasks that involve both images and text, including classification, captioning, and visual question answering. However, high accuracy on standard benchmarks does not always mean that these models understand visual content in a reliable way. In some cases, predictions may depend on background patterns rather than the object of interest.
+
+This project investigates how sensitive vision-language models are to changes in visual context. The central question is whether these models can maintain correct predictions when background information is altered. This problem matters for real-world deployment, where images often differ from training data and background conditions are unpredictable.
+
+\section{Motivation}
+
+Many commonly used datasets contain consistent relationships between objects and their surrounding scenes. As a result, models may learn shortcuts that associate objects with specific backgrounds instead of learning object-level features. This behavior is difficult to detect when evaluation is limited to clean benchmark images.
+
+The motivation of this project is to directly test how background changes affect model predictions. By modifying visual context while keeping the main object intact, we can better understand whether model decisions depend on meaningful visual cues or on contextual bias.
+
+\section{Approach}
+
+This project evaluates a pre-trained vision-language model under controlled visual modifications. The model parameters remain fixed during all experiments. The workflow includes three stages:
+
+\begin{itemize}
+    \item Evaluate baseline performance on original images using a fixed set of object-level text prompts.
+    \item Generate background-modified versions of the same images through background replacement, Gaussian blurring, and partial cropping while keeping the foreground object unchanged.
+    \item Measure changes in prediction accuracy and image--text similarity scores before and after modification to quantify robustness degradation.
+\end{itemize}
+
+
+Prompt wording is kept consistent across experiments so that observed changes can be attributed to visual input rather than prompt variation.
+
+\section{Dataset}
+
+We use three publicly available datasets to study robustness under different visual conditions.
+
+\begin{enumerate}
+    \item \textbf{MS COCO.}
+    This dataset is used as the main in-distribution benchmark. We select a subset of images that contain object categories with strong background dependence, including boats, airplanes, and horses. For each image, multiple modified versions are created by altering the background while keeping the foreground object unchanged. Background changes include Gaussian blur, masking, and replacement with unrelated scenes.  
+    Dataset link: \texttt{https://cocodataset.org/}
+
+    \item \textbf{ImageNet-R (or ImageNet-A).}
+    This dataset is used to evaluate robustness under distribution shift. Images contain familiar object categories presented in unusual styles or visual conditions. No additional modifications are applied. Performance on this dataset reflects the model’s ability to generalize beyond its training distribution.  
+    Dataset link: \texttt{https://github.com/hendrycks/imagenet-r}
+
+    \item \textbf{ObjectNet / CLEVR.}
+    This dataset serves as an object-centric control setting with reduced background bias. It is used as a sanity check to compare model behavior when contextual shortcuts are less available.
+
+    Dataset links:
+    \begin{itemize}
+        \item \texttt{https://objectnet.dev/} (ObjectNet)
+        \item \texttt{https://cs.stanford.edu/people/jcjohns/clevr/} (CLEVR)
+    \end{itemize}
+\end{enumerate}
+
+\section{Planned Experiments}
+
+The experiments are designed to reveal both quantitative and qualitative robustness behavior:
+
+\begin{itemize}
+    \item \textbf{Baseline Evaluation:} Measure model performance on original images using fixed prompts.
+    \item \textbf{Background Perturbation Evaluation:} Evaluate performance after background modification and compare with baseline results.
+    \item \textbf{Quantitative Analysis:} Analyze changes in accuracy and similarity scores across datasets and perturbation types.
+    \item \textbf{Qualitative Analysis:} Inspect representative failure cases to understand how background changes influence predictions.
+\end{itemize}
+
+\section{Expected Outcomes}
+
+We expect model performance to decrease when background and context information is modified. This behavior would indicate that current vision-language models rely partly on contextual cues rather than purely object-focused representations. The findings of this project aim to clarify robustness limitations and suggest directions for improving visual reliability.
+
+\begin{thebibliography}{9}
+
+\bibitem{clip}
+Radford, A., Kim, J. W., Hallacy, C., et al.
+\textit{Learning Transferable Visual Models From Natural Language Supervision}.
+Proceedings of ICML, 2021.
+
+\bibitem{shortcut}
+Geirhos, R., Rubisch, P., Michaelis, C., et al.
+\textit{Shortcut Learning in Deep Neural Networks}.
+Nature Machine Intelligence, 2020.
+
+\bibitem{ood}
+Hendrycks, D., Basart, S., Mu, N., et al.
+\textit{The Many Faces of Robustness: A Critical Analysis of Out-of-Distribution Generalization}.
+Proceedings of ICCV, 2021.
+
+\end{thebibliography}
+
+\end{document}
+
