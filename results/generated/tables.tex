@@ -1,0 +1,40 @@
+% --- Object-level (COCO) ---
+\begin{table}[ht]
+\centering
+\caption{Object-level accuracy (\%) on COCO subset. $n = 500$ images.}
+\label{tab:object-accuracy}
+\begin{tabular}{lcccc}
+\toprule
+Condition & Baseline & Blur & Mask & Crop \\
+\midrule
+Accuracy (\%) & 72.4 & 75.1 & 74.8 & 78.2 \\
+\bottomrule
+\end{table}
+
+% --- Relational (riding vs standing) ---
+\begin{table}[ht]
+\centering
+\caption{Relational accuracy (\%) on riding vs. standing. $n = 120$ images.}
+\label{tab:relational-accuracy}
+\begin{tabular}{lcccc}
+\toprule
+Condition & Baseline & Blur & Mask & Crop \\
+\midrule
+Accuracy (\%) & 80 & 76.7 & 70.8 & 79.2 \\
+\bottomrule
+\end{table}
+
+% --- Stability: P(correct after | correct before), P(correct after | wrong before) ---
+\begin{table}[ht]
+\centering
+\caption{Stability under perturbations.}
+\label{tab:stability}
+\begin{tabular}{lcc}
+\toprule
+Perturbation & $P(\text{correct after} \mid \text{correct before})$ & $P(\text{correct after} \mid \text{wrong before})$ \\
+\midrule
+Blur & 0.92 & 0.15 \\
+Mask & 0.85 & 0.12 \\
+Crop & 0.96 & 0.18 \\
+\bottomrule
+\end{table}

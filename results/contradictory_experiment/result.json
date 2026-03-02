@@ -1,0 +1,17 @@
+{
+  "mode": "contradictory",
+  "riding_image": "000000565962.jpg",
+  "standing_image": "000000492284.jpg",
+  "composite1_pred": "standing",
+  "composite2_pred": "standing",
+  "logits": [
+    [
+      20.519512176513672,
+      21.205995559692383
+    ],
+    [
+      16.139415740966797,
+      18.118677139282227
+    ]
+  ]
+}

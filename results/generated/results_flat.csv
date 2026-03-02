@@ -1,0 +1,15 @@
+task,condition,metric,value
+object,baseline,accuracy_pct,72.40
+object,blur,accuracy_pct,75.10
+object,mask,accuracy_pct,74.80
+object,crop,accuracy_pct,78.20
+relational,baseline,accuracy_pct,80.00
+relational,blur,accuracy_pct,76.70
+relational,mask,accuracy_pct,70.80
+relational,crop,accuracy_pct,79.20
+stability,blur,P_correct_after_given_correct_before,0.9200
+stability,blur,P_correct_after_given_wrong_before,0.1500
+stability,mask,P_correct_after_given_correct_before,0.8500
+stability,mask,P_correct_after_given_wrong_before,0.1200
+stability,crop,P_correct_after_given_correct_before,0.9600
+stability,crop,P_correct_after_given_wrong_before,0.1800
