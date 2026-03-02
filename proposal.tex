@@ -20,7 +20,7 @@
 
 \vspace{0.8cm}
 
-\textbf{Evaluating the Robustness of Vision-Language Models to Background and Context Changes}
+\textbf{Benchmarking the Robustness of CLIP Under Context and Color Perturbations}
 
 \vspace{0.5cm}
 
@@ -35,73 +35,137 @@ February 2026
 % ---------------- Abstract ----------------
 \section*{Abstract}
 
-Vision-Language Models (VLMs) perform well on many multimodal tasks, but it is still unclear how stable these models are when visual context changes. This project studies whether VLM predictions rely on recognizing the target object itself or on surrounding background information. We apply controlled background modifications and test model performance across several datasets. By comparing results before and after perturbation, this work examines common failure patterns and highlights robustness issues that appear under distribution shift.
+Vision-language models such as CLIP achieve strong performance on standard benchmarks, but their behavior under controlled perturbations is not well understood. This project systematically benchmarks the robustness of CLIP to (i) background and context manipulations, (ii) distribution shift across multiple datasets, and (iii) simulated color-vision deficiencies (color weakness and color blindness). Using MS COCO, ImageNet-R, ImageNet-A, and object-centric datasets (ObjectNet / CLEVR), we construct a battery of experiments that includes background replacement and swaps, contradictory foreground--background compositions, linear probing of CLIP features, and color-vision robustness tests with multi-label COCO ground truth. We also explore several lightweight training variants---color-invariant augmentation, shape/edge-biased augmentations, and adversarial-style color transforms with a consistency loss---to improve robustness without fully retraining CLIP. Our results highlight how much CLIP relies on contextual cues, how sensitive it is to relational changes, and how stable it remains under simulated color-vision deficiencies when evaluated with appropriate metrics.
 
 \vspace{0.5cm}
 
 % ---------------- Main Sections ----------------
 \section{Introduction}
 
-Vision-language models (VLMs) have shown strong results on tasks that involve both images and text, including classification, captioning, and visual question answering. However, high accuracy on standard benchmarks does not always mean that these models understand visual content in a reliable way. In some cases, predictions may depend on background patterns rather than the object of interest.
+Vision-language models (VLMs) such as CLIP have shown strong results on tasks that involve both images and text, including classification, retrieval, captioning, and visual question answering. However, high accuracy on standard benchmarks does not always mean that these models understand visual content in a reliable way. In many settings, predictions may depend on background patterns, dataset-specific artifacts, or color statistics rather than on semantically meaningful object and relation cues.
 
-This project investigates how sensitive vision-language models are to changes in visual context. The central question is whether these models can maintain correct predictions when background information is altered. This problem matters for real-world deployment, where images often differ from training data and background conditions are unpredictable.
+This project investigates how sensitive CLIP is to structured changes in visual input. We ask three main questions:
+\begin{itemize}
+    \item Do CLIP predictions rely primarily on object-level evidence, or do they exploit background and contextual shortcuts?
+    \item How robust is CLIP to natural distribution shifts such as stylized renditions (ImageNet-R) and natural adversarial examples (ImageNet-A)?
+    \item How much do simulated color-vision deficiencies (e.g., protanopia, deuteranopia, tritanopia) affect CLIP's accuracy, and can we improve robustness with targeted training strategies?
+\end{itemize}
+These questions matter for real-world deployment, where images often differ from training data, backgrounds are unpredictable, and users may experience diverse visual conditions.
 
 \section{Motivation}
 
 Many commonly used datasets contain consistent relationships between objects and their surrounding scenes. As a result, models may learn shortcuts that associate objects with specific backgrounds instead of learning object-level features. This behavior is difficult to detect when evaluation is limited to clean benchmark images.
 
-The motivation of this project is to directly test how background changes affect model predictions. By modifying visual context while keeping the main object intact, we can better understand whether model decisions depend on meaningful visual cues or on contextual bias.
+In addition, robustness to human color-vision variation is rarely studied for VLMs. A system that is stable for users with typical color perception may behave differently when the same scene is viewed under simulated color weakness or color blindness. Because CLIP is widely used as a foundation vision encoder in downstream multimodal systems, understanding its failure modes under these conditions is important.
 
-\section{Approach}
+The motivation of this project is therefore twofold: (i) directly test how background and relational changes affect model predictions, and (ii) quantify how CLIP behaves when color information is altered in ways that approximate human color-vision deficiencies. By modifying visual context while keeping the main object intact, and by simulating color-vision conditions on full-scene images, we can better understand whether model decisions depend on meaningful visual cues or on contextual and color-based shortcuts.
 
-This project evaluates a pre-trained vision-language model under controlled visual modifications. The model parameters remain fixed during all experiments. The workflow includes three stages:
+\section{Methods}
 
+This project evaluates a pre-trained CLIP model under controlled visual modifications and dataset shifts. Unless otherwise noted, CLIP parameters remain frozen; we either run pure inference or train small heads on top of CLIP features.
+
+\subsection{Base Model and Prompts}
+
+We use the \texttt{openai/clip-vit-base-patch32} model from the HuggingFace \texttt{transformers} library. For object-centric experiments on COCO and related datasets, we construct class-level prompts of the form ``a photo of a \{\texttt{category}\}''. For relational experiments (e.g., person riding vs.\ standing next to a horse), we use pairwise prompts that explicitly encode the relation (``a person riding a horse'' vs.\ ``a person standing next to a horse'').
+
+Prompt wording is kept consistent across experiments so that observed changes can be attributed to visual input or training variant rather than prompt variation.
+
+\subsection{Background and Context Perturbations}
+
+Using MS COCO 2017 validation images, we implement several background and context manipulations in a Jupyter notebook (\texttt{vlm\_robustness\_eval.ipynb}):
 \begin{itemize}
-    \item Evaluate baseline performance on original images using a fixed set of object-level text prompts.
-    \item Generate background-modified versions of the same images through background replacement, Gaussian blurring, and partial cropping while keeping the foreground object unchanged.
-    \item Measure changes in prediction accuracy and image--text similarity scores before and after modification to quantify robustness degradation.
+    \item \textbf{Background blur, masking, and replacement}: The foreground object is preserved using COCO segmentation masks or bounding boxes, while the background is blurred, masked to a constant, or replaced with an unrelated scene.
+    \item \textbf{Foreground--background swaps}: In a separate notebook (\texttt{2\_swap\_experiment.ipynb}), we select pairs of COCO images (e.g., a person riding a horse vs.\ a person standing next to a horse) and swap foregrounds and backgrounds to create composites that test whether CLIP follows the foreground or the surrounding context.
+    \item \textbf{Contradictory composites}: In \texttt{3\_contradictory\_experiment.ipynb}, we paste foregrounds onto full images in a way that creates contradictory cues (e.g., a riding foreground pasted onto a standing scene), probing CLIP's sensitivity to relational inconsistencies.
 \end{itemize}
 
+\subsection{Feature Probing}
 
-Prompt wording is kept consistent across experiments so that observed changes can be attributed to visual input rather than prompt variation.
+To better understand what information CLIP's image encoder captures, we train linear probes on top of frozen CLIP features (\texttt{4\_linear\_probe.ipynb}). We compare probe performance on original versus perturbed images to assess whether robust features exist in the representation space even when zero-shot predictions degrade.
 
-\section{Dataset}
+\subsection{Color-Vision Robustness and Training Variants}
 
-We use three publicly available datasets to study robustness under different visual conditions.
+In the color-vision robustness notebook (\texttt{6\_color\_vision\_experiment.ipynb}), we evaluate CLIP on the full MS COCO 2017 validation split, treating each image as multi-label (all COCO categories present in the scene). We simulate several color-vision conditions using standard $3\\times3$ color transformation matrices:
+\begin{itemize}
+    \item Normal vision (unmodified RGB).
+    \item Protanopia, deuteranopia, and tritanopia (simulated color blindness modes).
+\end{itemize}
+For each condition, we measure accuracy where a prediction is considered correct if CLIP's top-1 class lies in the set of true COCO categories for that image.
+
+We then explore several lightweight training strategies on a subset of COCO images while keeping CLIP frozen and training only a small linear head on top of CLIP logits:
+\begin{itemize}
+    \item \textbf{Baseline head}: Multi-label training on original images using binary cross-entropy loss.
+    \item \textbf{Color-invariant augmentation}: Strong color jitter and simulated color-vision transforms are applied to augmented copies of each image. A consistency loss encourages the head's logits on original and color-augmented images to match.
+    \item \textbf{Shape/edge-biased augmentation}: Grayscale and edge-like (Sobel) representations are used as augmentations, biasing the head toward shape and structure rather than raw color.
+    \item \textbf{Adversarial-style color transforms}: For each batch, we sample from a small family of strong color transforms (intensity shifts, grayscale, simulated color-vision modes) and again apply a consistency loss so that predictions are invariant to the selected transformation.
+\end{itemize}
+These variants provide an empirical comparison of which strategy most improves robustness to color-related perturbations without fully retraining CLIP.
+
+\section{Datasets}
+
+We use several publicly available datasets to study robustness under different visual conditions and distribution shifts.
 
 \begin{enumerate}
-    \item \textbf{MS COCO.}
-    This dataset is used as the main in-distribution benchmark. We select a subset of images that contain object categories with strong background dependence, including boats, airplanes, and horses. For each image, multiple modified versions are created by altering the background while keeping the foreground object unchanged. Background changes include Gaussian blur, masking, and replacement with unrelated scenes.  
+    \item \textbf{MS COCO 2017 (val).}
+    This dataset is used as the main in-distribution benchmark. We use the full 2017 validation split with all 80 categories and treat each image as multi-label, based on all COCO annotations present. For a subset of categories with strong background dependence (e.g., boats, airplanes, horses), we create multiple modified versions by altering the background while keeping the foreground object unchanged. Background changes include Gaussian blur, masking, partial cropping, and replacement with unrelated scenes. COCO is also used for the color-vision robustness experiments and for training and evaluating the small robustness heads on top of CLIP.  
     Dataset link: \texttt{https://cocodataset.org/}
 
-    \item \textbf{ImageNet-R (or ImageNet-A).}
-    This dataset is used to evaluate robustness under distribution shift. Images contain familiar object categories presented in unusual styles or visual conditions. No additional modifications are applied. Performance on this dataset reflects the model’s ability to generalize beyond its training distribution.  
-    Dataset link: \texttt{https://github.com/hendrycks/imagenet-r}
+    \item \textbf{ImageNet-R / ImageNet-A.}
+    These datasets are used to evaluate robustness under distribution shift. ImageNet-R (ImageNet-Renditions) contains familiar object categories presented in unusual styles (paintings, cartoons, embroidery, etc.), while ImageNet-A consists of natural adversarial examples that standard ImageNet models frequently misclassify. We evaluate CLIP on these datasets without additional modifications. Performance on these datasets reflects the model’s ability to generalize beyond its training distribution.  
+    Dataset links: \texttt{https://github.com/hendrycks/imagenet-r}, \texttt{https://github.com/hendrycks/natural-adv-examples}
 
-    \item \textbf{ObjectNet / CLEVR.}
-    This dataset serves as an object-centric control setting with reduced background bias. It is used as a sanity check to compare model behavior when contextual shortcuts are less available.
-
-    Dataset links:
-    \begin{itemize}
-        \item \texttt{https://objectnet.dev/} (ObjectNet)
-        \item \texttt{https://cs.stanford.edu/people/jcjohns/clevr/} (CLEVR)
-    \end{itemize}
 \end{enumerate}
 
-\section{Planned Experiments}
+\section{Experiments}
 
-The experiments are designed to reveal both quantitative and qualitative robustness behavior:
+The experiments are designed to reveal both quantitative and qualitative robustness behavior across context, distribution shift, and color-vision perturbations. All experiments are implemented in Jupyter notebooks in the project repository.
 
+\subsection{Baseline and Background Perturbation Evaluation}
+
+In \texttt{vlm\_robustness\_eval.ipynb}, we:
 \begin{itemize}
-    \item \textbf{Baseline Evaluation:} Measure model performance on original images using fixed prompts.
-    \item \textbf{Background Perturbation Evaluation:} Evaluate performance after background modification and compare with baseline results.
-    \item \textbf{Quantitative Analysis:} Analyze changes in accuracy and similarity scores across datasets and perturbation types.
-    \item \textbf{Qualitative Analysis:} Inspect representative failure cases to understand how background changes influence predictions.
+    \item Measure zero-shot CLIP performance on original COCO images using fixed class prompts.
+    \item Apply background blur, masking, cropping, and replacement while preserving the foreground object, and re-evaluate CLIP on the perturbed images.
+    \item Compute changes in accuracy and image--text similarity scores to quantify robustness degradation.
+    \item Visualize representative failure cases where predictions flip after background changes.
 \end{itemize}
 
-\section{Expected Outcomes}
+\subsection{Foreground--Background Swaps and Contradictions}
 
-We expect model performance to decrease when background and context information is modified. This behavior would indicate that current vision-language models rely partly on contextual cues rather than purely object-focused representations. The findings of this project aim to clarify robustness limitations and suggest directions for improving visual reliability.
+In \texttt{2\_swap\_experiment.ipynb}, we select pairs of COCO images containing a person and a horse in different relations (riding vs.\ standing next to). We then:
+\begin{itemize}
+    \item Construct composites where foregrounds are swapped between images, creating conditions such as ``riding foreground + standing background''.
+    \item Evaluate CLIP with relational prompts and measure whether predictions track the foreground relation or the background context.
+\end{itemize}
+
+In \texttt{3\_contradictory\_experiment.ipynb}, we paste foregrounds onto full images in a manner that induces contradictory relational cues, and analyze CLIP's preference for one cue over the other.
+
+\subsection{Linear Probe Analysis}
+
+In \texttt{4\_linear\_probe.ipynb}, we extract CLIP image features for original and perturbed images and train linear classifiers on top of these features. By comparing probe performance and decision boundaries, we assess whether robust information is present in the representation even when zero-shot logits are fragile.
+
+\subsection{Color-Vision Robustness and Training Variants}
+
+In \texttt{6\_color\_vision\_experiment.ipynb}, we:
+\begin{itemize}
+    \item Evaluate CLIP on full-scene COCO images under simulated normal, protanopic, deuteranopic, and tritanopic conditions, using multi-label ground truth per image.
+    \item Measure accuracy where a prediction is correct if it matches any of the annotated COCO categories for that image.
+    \item Visualize example images and predictions across color-vision modes to qualitatively inspect stable and unstable cases.
+    \item Train and compare several small heads on top of frozen CLIP logits (baseline, color-invariant augmentation, shape/edge-biased augmentation, adversarial-style color transforms with consistency loss), using a COCO subset, and examine which variant yields the best validation performance and color-robust behavior.
+\end{itemize}
+
+\section{Expected Outcomes and Contributions}
+
+We expect CLIP performance to decrease when background and context information are modified in ways that break dataset-specific correlations. This behavior would indicate that current vision-language models rely partly on contextual cues rather than purely object-focused representations. On distribution-shifted datasets such as ImageNet-R and ImageNet-A, we anticipate substantial accuracy drops relative to in-distribution performance, consistent with prior robustness results.
+
+For the color-vision experiments, we initially observe that zero-shot CLIP accuracy under simulated color-vision deficiencies is comparable to the normal condition when evaluated with strict single-label metrics, but that both absolute accuracy and the interpretation of ``correct'' predictions improve significantly when using multi-label ground truth. We expect that robustness-oriented training variants---especially color-invariant and shape/edge-biased augmentations with consistency losses---will further reduce discrepancies between normal and color-deficient conditions while slightly improving overall multi-label performance.
+
+Overall, this project contributes:
+\begin{itemize}
+    \item A unified benchmark and set of notebooks for probing CLIP robustness to background perturbations, relational changes, distribution shift, and color-vision deficiencies.
+    \item Empirical evidence on how and when CLIP relies on background context versus object-level and relational cues.
+    \item Initial training strategies that improve color-robust behavior without fully retraining CLIP, suggesting practical directions for building more reliable vision-language systems.
+\end{itemize}
 
 \begin{thebibliography}{9}
 
